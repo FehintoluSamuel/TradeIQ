@@ -10,7 +10,7 @@ from app.database import Base
 
 
 class User(Base):
-    tablename = "users"
+    __tablename__ = "users"
 
     id            = Column(Integer,      primary_key=True, index=True)
     username      = Column(String(50),   unique=True, nullable=False, index=True)

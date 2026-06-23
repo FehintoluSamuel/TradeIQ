@@ -9,6 +9,7 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 
 # ── Settings ────────────────────────────────────────────────────────────────
@@ -17,16 +18,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ENV: str = "development"
 
-    class Config:
-        env_file = ".env"
-
-
-settings = Settings()
+    model_config = ConfigDict(env_file=".env")
 
 
 # ── Engine ───────────────────────────────────────────────────────────────────
 # echo=True prints all SQL queries to the terminal in development.
 # Automatically silenced in production.
+
+settings = Settings()
 
 engine = create_engine(
     settings.DATABASE_URL,

@@ -14,7 +14,7 @@ from app.database import Base
 
 
 class DailyPrice(Base):
-    tablename = "daily_prices"
+    __tablename__ = "daily_prices"
     table_args = (
         UniqueConstraint("stock_id", "date", name="uix_stock_date"),
     )

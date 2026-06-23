@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship
 
 
 class Stock(Base):
-    tablename = "stocks"
+    __tablename__ = "stocks"
 
     id         = Column(Integer,     primary_key=True, index=True)
     ticker     = Column(String(10),  unique=True, nullable=False, index=True)
