@@ -40,7 +40,7 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 # Uncomment each router as it is built.
-# from app.routers.stocks  import router as stocks_router
+from app.routers.stocks  import router as stocks_router
 # from app.routers.prices  import router as prices_router
 # from app.routers.signals import router as signals_router
 
