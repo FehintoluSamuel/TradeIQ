@@ -20,6 +20,8 @@ router = APIRouter()
 
 def get_stock_or_404(ticker: str, db: Session) -> Stock:
     """Fetch a stock by ticker or raise 404. Reused across endpoints."""
+    #To Normalize ticker
+    ticker = ticker.replace("'", "").replace('"', "").strip()
     stock = (
         db.query(Stock)
         .filter(Stock.ticker == ticker.upper())
