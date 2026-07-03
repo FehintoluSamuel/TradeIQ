@@ -21,7 +21,7 @@ from app.models import User
 # ── Passlib context ───────────────────────────────────────────────────────────
 # bcrypt is the hashing scheme. deprecated="auto" handles old hash formats.
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 # ── OAuth2 scheme ─────────────────────────────────────────────────────────────

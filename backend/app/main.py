@@ -43,10 +43,12 @@ app.add_middleware(
 from app.routers.stocks  import router as stocks_router
 from app.routers.prices  import router as prices_router
 from app.routers.signals import router as signals_router
+from app.routers.auth import router as auth_router
 
 app.include_router(stocks_router,  prefix="/api/v1", tags=["stocks"])
 app.include_router(prices_router,  prefix="/api/v1", tags=["prices"])
 app.include_router(signals_router, prefix="/api/v1", tags=["signals"])
+app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
 
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/", tags=["health"])

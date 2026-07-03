@@ -27,3 +27,7 @@ __pycache__/
 
 #seed files
 *seed.py
+
+#Tests folders
+.tests/
+tests/
