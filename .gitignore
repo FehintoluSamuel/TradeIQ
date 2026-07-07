@@ -25,9 +25,8 @@ __pycache__/
 *.db
 *.sqlite3
 
-#seed files
-*seed.py
-
+# Seed data — CSV files contain financial data, not code
+seed/*.csv
 #Tests folders
 .tests/
 tests/
