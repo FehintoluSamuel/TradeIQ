@@ -2,17 +2,16 @@ import requests
 import requests, json
 from app.database import settings
 from app.database import SessionLocal
-from app.models import Stock
+from app.database import SessionLocal
+from app.models import DailyPrice, Stock
 
 db = SessionLocal()
-tickers = [
-    'GTCO', 'ZENITHBANK', 'UBA', 'STANBIC', 'FIDELITYBK', 'FCMB',
-    'MTNN', 'AIRTELAFRI', 'DANGCEM', 'JBERGER', 'NB', 'GUINNESS',
-    'NESTLE', 'CADBURY', 'UNILEVER', 'PZ', 'NASCON', 'OKOMUOIL',
-    'PRESCO', 'SEPLAT', 'GEREGU', 'TRANSCORP', 'BUACEMENT', 'BUAFOODS'
-]
-found   = [t for t in tickers if db.query(Stock).filter(Stock.ticker==t).first()]
-missing = [t for t in tickers if not db.query(Stock).filter(Stock.ticker==t).first()]
-print(f'In DB ({len(found)}): {found}')
-print(f'Missing ({len(missing)}): {missing}')
+total = db.query(DailyPrice).count()
+print(f'Total price rows in DB: {total}')
+
+# Show count per stock
+stocks = db.query(Stock).all()
+for s in stocks:
+    count = db.query(DailyPrice).filter(DailyPrice.stock_id == s.id).count()
+    print(f'  {s.ticker}: {count} rows')
 db.close()

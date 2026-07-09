@@ -7,9 +7,11 @@ Run with: uvicorn app.main:app --reload
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 from app.database import Base, engine
 from app.models import Stock, DailyPrice, User
+from app.scheduler import create_scheduler
 
 # ── Create database tables ────────────────────────────────────────────────────
 # Runs on startup — creates tables if they don't exist. Safe to run repeatedly.
@@ -23,6 +25,22 @@ app = FastAPI(
     docs_url="/api/docs",       # Swagger UI at /api/docs
     redoc_url="/api/redoc",     # ReDoc at /api/redoc
 )
+# Add to imports
+
+logger = logging.getLogger(__name__)
+
+# Add after middleware, before routers
+scheduler = create_scheduler()
+
+@app.on_event("startup")
+def start_scheduler():
+    scheduler.start()
+    logger.info("Scheduler started — scraper runs at 15:30 and 16:00 WAT daily.")
+
+@app.on_event("shutdown")
+def stop_scheduler():
+    scheduler.shutdown()
+    logger.info("Scheduler stopped.")
 
 # ── CORS middleware ───────────────────────────────────────────────────────────
 # Allows the React frontend (Vite, port 5173) to call this API.
