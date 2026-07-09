@@ -22,8 +22,8 @@ TICKER_MAP = {
     "DANGCEM":   "DANGCEM",
     "GTCO":      "GTCO",
     "MTNN":      "MTNN",
-    "ZENITHBANK": "ZENITH",
-    "BUACEMENT":  "BUA",
+    "ZENITH": "ZENITHBANK",
+    "BUA":  "BUACEMENT",
 }
 
 def clean(value: str) -> str:

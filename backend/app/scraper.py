@@ -10,6 +10,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Optional, List, Dict
 
+from datetime import datetime, date
 import requests
 from sqlalchemy.orm import Session
 
@@ -25,71 +26,62 @@ logger = logging.getLogger(__name__)
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 TICKERS = ["DANGCEM", "GTCO", "MTNN", "ZENITH", "BUA"]
-
-NGX_PULSE_URL = "https://www.ngxpulse.ng/api/ngxdata/stocks"
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def clean(value) -> str:
-    """Strip whitespace and commas from numeric strings."""
-    return str(value).strip().replace(",", "")
+API_SYMBOL_MAP = {
+    "DANGCEM": "DANGCEM",
+    "GTCO": "GTCO",
+    "MTNN": "MTNN",
+    "ZENITH": "ZENITHBANK",
+    "BUA": "BUACEMENT",
+}
 
 
-# ── Core functions ────────────────────────────────────────────────────────────
+# Single stock historical endpoint
+NGX_PRICE_URL = "https://www.ngxpulse.ng/api/ngxdata/prices"
 
-def fetch_all_stocks() -> Optional[List[Dict]]:
-    """
-    Fetch all NGX stocks from NGX Pulse API.
-    One call returns 150+ stocks — we filter afterwards.
-    Returns None on any network or auth error.
-    """
+
+def fetch_stock_history(
+    ticker: str,
+    days: int = 365
+) -> Optional[List[Dict]]:
+    """Fetch historical prices for one ticker."""
     try:
         response = requests.get(
-            NGX_PULSE_URL,
+            f"{NGX_PRICE_URL}/{ticker}",
             headers={
                 "X-API-Key":  settings.NGX_PULSE_API_KEY,
-                "User-Agent": "TradeIQ/1.0",
                 "Accept":     "application/json",
             },
+            params={"days": days},
             timeout=15,
         )
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return data.get("prices", [])
     except requests.RequestException as e:
-        logger.error(f"Failed to fetch NGX Pulse data: {e}")
-        return None
-    except ValueError as e:
-        logger.error(f"Failed to parse NGX Pulse response: {e}")
+        logger.error(f"Failed to fetch {ticker}: {e}")
         return None
 
 
-def parse_stock_data(stock_data: Dict) -> Optional[Dict]:
-    """
-    Parse a single stock entry from NGX Pulse API response.
-    Maps API fields to our DailyPrice schema.
-    Returns None if data is invalid.
-    """
+def parse_ngx_row(row: Dict) -> Optional[Dict]:
+    """Parse one row from NGX Pulse historical response."""
     try:
-        price = Decimal(clean(stock_data["current_price"]))
-
-        if price <= 0:
-            logger.warning(f"Invalid price for {stock_data.get('symbol')}: {price}")
+        close = Decimal(str(row["close_price"] or row["open_price"]))
+        if close <= 0:
             return None
-
         return {
-            "date":   date.today(),
-            "open":   price,   # API doesn't provide OHLC separately
-            "high":   price,   # using current_price for all four
-            "low":    price,   # documented limitation
-            "close":  price,
-            "volume": int(float(clean(stock_data.get("volume", 0)))),
+            "date":   datetime.strptime(
+                          row["trade_date"], "%Y-%m-%d"
+                      ).date(),
+            "open":   Decimal(str(row["open_price"]  or close)),
+            "high":   Decimal(str(row["high_price"]  or close)),
+            "low":    Decimal(str(row["low_price"]   or close)),
+            "close":  close,
+            "volume": int(row.get("volume") or 0),
         }
     except (KeyError, InvalidOperation, ValueError) as e:
-        logger.warning(f"Failed to parse stock data: {e}")
+        logger.warning(f"Skipping row: {e}")
         return None
-
-
+    
 def store_price(ticker: str, row: Dict, db: Session) -> bool:
     """
     Insert one DailyPrice row for a ticker.
@@ -114,7 +106,6 @@ def store_price(ticker: str, row: Dict, db: Session) -> bool:
         .first()
     )
     if exists:
-        logger.info(f"{ticker}: price for {row['date']} already exists.")
         return False
 
     db.add(DailyPrice(
@@ -123,45 +114,28 @@ def store_price(ticker: str, row: Dict, db: Session) -> bool:
         **row,
     ))
     return True
+    
+
 
 
 def run_scraper(db: Session) -> None:
-    """
-    Main entry point — one API call, filter 5 tickers, store results.
-    Called by scheduler.py daily at 17:00 WAT.
-    """
+    """Fetch and store latest prices for all tracked tickers."""
     logger.info("Scraper started.")
+    inserted_total = 0
 
-    # One API call for all stocks
-    all_stocks = fetch_all_stocks()
-    print(type(all_stocks))
-    print(all_stocks)
-
-    if all_stocks:
-        print(type(all_stocks[0]))
-        print(all_stocks[0])
-        
-    if not all_stocks:
-        logger.error("Scraper aborted — could not fetch data.")
-        return
-
-    # Build lookup dict by symbol for O(1) access
-    stock_map = {s["symbol"]: s for s in all_stocks}
-
-    inserted = 0
     for ticker in TICKERS:
-        stock_data = stock_map.get(ticker)
-        if not stock_data:
-            logger.warning(f"{ticker} not found in NGX Pulse response.")
+        rows = fetch_stock_history(ticker, days=365)
+        if not rows:
             continue
 
-        row = parse_stock_data(stock_data)
-        if not row:
-            continue
+        count = 0
+        for raw in rows:
+            row = parse_ngx_row(raw)
+            if row and store_price(ticker, row, db):
+                count += 1
 
-        if store_price(ticker, row, db):
-            inserted += 1
-            logger.info(f"{ticker}: stored close={row['close']}")
+        db.commit()
+        inserted_total += count
+        logger.info(f"{ticker}: {count} rows inserted.")
 
-    db.commit()
-    logger.info(f"Scraper finished. {inserted}/{len(TICKERS)} tickers updated.")
+    logger.info(f"Scraper finished. {inserted_total} total rows.")
