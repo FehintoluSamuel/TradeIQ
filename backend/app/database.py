@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     DATABASE_URL: str
     ENV: str = "development"
+    NGX_PULSE_API_KEY: str = ""
 
     model_config = ConfigDict(env_file=".env")
 
