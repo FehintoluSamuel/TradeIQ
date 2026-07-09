@@ -25,7 +25,24 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-TICKERS = ["DANGCEM", "GTCO", "MTNN", "ZENITH", "BUA"]
+TICKERS = [
+    # Financial Services
+    "GTCO", "ZENITHBANK", "UBA", "STANBIC", "FIDELITYBK", "FCMB",
+    # Telecoms
+    "MTNN", "AIRTELAFRI",
+    # Industrial Goods
+    "DANGCEM", "JBERGER",
+    # Consumer Goods
+    "NB", "GUINNESS", "NESTLE", "CADBURY", "UNILEVER", "PZ", "NASCON",
+    # Agriculture
+    "OKOMUOIL", "PRESCO",
+    # Energy
+    "SEPLAT", "GEREGU",
+    # Conglomerates
+    "TRANSCORP",
+    # Cement / Food
+    "BUACEMENT", "BUAFOODS",
+]
 API_SYMBOL_MAP = {
     "DANGCEM": "DANGCEM",
     "GTCO": "GTCO",
