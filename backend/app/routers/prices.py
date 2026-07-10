@@ -53,7 +53,7 @@ def get_prices(
     prices = (
         db.query(DailyPrice)
         .filter(DailyPrice.stock_id == stock.id)
-        .order_by(DailyPrice.date.asc())
+        .order_by(DailyPrice.date.desc())
         .limit(limit)
         .all()
     )

@@ -17,7 +17,24 @@ from app.routers.prices import get_stock_or_404
 
 router = APIRouter()
 
-TICKERS = ["DANGCEM", "GTCO", "MTNN", "ZENITH", "BUA"]
+TICKERS = [
+    # Financial Services
+    "GTCO", "ZENITHBANK", "UBA", "STANBIC", "FIDELITYBK", "FCMB",
+    # Telecoms
+    "MTNN", "AIRTELAFRI",
+    # Industrial Goods
+    "DANGCEM", "JBERGER",
+    # Consumer Goods
+    "NB", "GUINNESS", "NESTLE", "CADBURY", "UNILEVER", "PZ", "NASCON",
+    # Agriculture
+    "OKOMUOIL", "PRESCO",
+    # Energy
+    "SEPLAT", "GEREGU",
+    # Conglomerates
+    "TRANSCORP",
+    # Cement / Food
+    "BUACEMENT", "BUAFOODS",
+]
 
 
 # ── Private helper ────────────────────────────────────────────────────────────
@@ -32,7 +49,7 @@ def _compute_signal(ticker: str, db: Session) -> SignalResponse:
     prices = (
         db.query(DailyPrice)
         .filter(DailyPrice.stock_id == stock.id)
-        .order_by(DailyPrice.date.asc())
+        .order_by(DailyPrice.date.desc())
         .limit(30)
         .all()
     )

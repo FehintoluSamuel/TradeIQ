@@ -7,7 +7,7 @@ One row per stock per trading day — stores OHLCV data.
 from sqlalchemy import (
     Column, Integer, String, Numeric,
     BigInteger, Date, DateTime, ForeignKey,
-    UniqueConstraint, func,
+    UniqueConstraint, func, Index,
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -17,6 +17,7 @@ class DailyPrice(Base):
     __tablename__ = "daily_prices"
     table_args = (
         UniqueConstraint("stock_id", "date", name="uix_stock_date"),
+        Index("ix_stock_date", "stock_id", "date"),
     )
 
     id         = Column(Integer,          primary_key=True, index=True)
