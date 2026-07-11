@@ -8,6 +8,7 @@ No Base or Create schema needed — this is a read-only computed response.
 from datetime import date
 from decimal import Decimal
 from pydantic import BaseModel
+from typing import Optional
 
 
 class SignalResponse(BaseModel):
@@ -19,9 +20,9 @@ class SignalResponse(BaseModel):
     date:          date
     close:         Decimal
     change_pct:    float
-    ma7:           Decimal
-    ma30:          Decimal
-    rsi:           float
+    ma7:           Optional[Decimal]= None
+    ma30:          Optional[Decimal]= None
+    rsi:           Optional[float]= None
     signal:        str      # "bullish" | "neutral" | "bearish" | "overbought" | "oversold"
     signal_reason: str      # Plain English explanation for Nigerian retail investors
 

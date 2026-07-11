@@ -15,6 +15,9 @@ from app.scheduler import scraper_job
 
 from app.auth import get_current_user
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 
 # ── Create database tables ────────────────────────────────────────────────────
 # Runs on startup — creates tables if they don't exist. Safe to run repeatedly.
@@ -60,15 +63,8 @@ app.add_middleware(
 
 scheduler = create_scheduler()
 
-"""@app.on_event("startup")
-def start_scheduler():
-    scheduler.start()
-    logger.info("Scheduler started — scraper runs at 15:30 and 16:00 WAT daily.")
 
-@app.on_event("shutdown")
-def stop_scheduler():
-    scheduler.shutdown()
-    logger.info("Scheduler stopped.")"""
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 # Uncomment each router as it is built.
@@ -102,3 +98,15 @@ def trigger_scrape(current_user: User = Depends(get_current_user)):
         )
     scraper_job()
     return {"status": "scraper triggered", "triggered_by": current_user.email}
+
+
+# ── Temporarily render the frontend──────────────────────────────────────────────────────────────
+"""@app.get("/")
+def serve_frontend():
+    return FileResponse("frontend/index.html")
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")"""
+
+@app.get("/dashboard", include_in_schema=False)
+def serve_frontend():
+    return FileResponse("frontend/index.html")

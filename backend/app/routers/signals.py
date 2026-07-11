@@ -53,6 +53,7 @@ def _compute_signal(ticker: str, db: Session) -> SignalResponse:
         .limit(30)
         .all()
     )
+    prices.reverse()  # oldest → newest for indicator calculations
 
     if not prices:
         raise HTTPException(

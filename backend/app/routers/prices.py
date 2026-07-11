@@ -57,6 +57,8 @@ def get_prices(
         .limit(limit)
         .all()
     )
+    # Reverse so chart goes oldest → newest
+    # prices.reverse()
     return prices
 
 
