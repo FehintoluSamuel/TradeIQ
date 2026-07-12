@@ -101,11 +101,6 @@ def trigger_scrape(current_user: User = Depends(get_current_user)):
 
 
 # ── Temporarily render the frontend──────────────────────────────────────────────────────────────
-"""@app.get("/")
-def serve_frontend():
-    return FileResponse("frontend/index.html")
-
-app.mount("/static", StaticFiles(directory="frontend"), name="static")"""
 
 @app.get("/dashboard", include_in_schema=False)
 def serve_frontend():
