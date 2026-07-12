@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse
 
 # ── Create database tables ────────────────────────────────────────────────────
 # Runs on startup — creates tables if they don't exist. Safe to run repeatedly.
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 logger = logging.getLogger(__name__)
 
 # ── App instance ──────────────────────────────────────────────────────────────
@@ -33,8 +33,11 @@ app = FastAPI(
     redoc_url="/api/redoc",     # ReDoc at /api/redoc
 )
 
+scheduler = create_scheduler()
+
 @app.on_event("startup")
 def start_scheduler():
+    Base.metadata.create_all(bind=engine)
     scheduler.start()
     print("=== SCHEDULER STARTED ===")
     print(f"Jobs: {scheduler.get_jobs()}")
@@ -61,10 +64,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-scheduler = create_scheduler()
 
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+try:
+    app.mount("/static", StaticFiles(directory="frontend"), name="static")
+except RuntimeError:
+    pass  # frontend directory doesn't exist in test environment
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 # Uncomment each router as it is built.
