@@ -27,6 +27,10 @@ __pycache__/
 
 # Seed data — CSV files contain financial data, not code
 seed/*.csv
+
 #Tests folders
 .tests/
 tests/
+
+#add admin
+add_admin.py
