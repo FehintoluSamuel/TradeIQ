@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeIQ — NGX Signals</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .signal-bullish    { background:#0F5C2E;color:#22C55E;border:1px solid #22C55E; }
+  .signal-bearish    { background:#3D1010;color:#EF4444;border:1px solid #EF4444; }
+  .signal-overbought { background:#3D2E00;color:#F59E0B;border:1px solid #F59E0B; }
+  .signal-oversold   { background:#0C2340;color:#60A5FA;border:1px solid #60A5FA; }
+  .signal-neutral    { background:#1F2937;color:#9CA3AF;border:1px solid #374151; }
+  .stock-item:hover  { background:#112A1C; }
+  .stock-item.active { background:#112A1C;border-left:3px solid #22C55E; }
+  .card { background:#0A2818;border:0.5px solid #1A3D28;border-radius:10px; }
+  .scrollbar-hide::-webkit-scrollbar { display:none; }
+  .light-mode .card { 
+  background: #FFFFFF; 
+  border: 0.5px solid #D1E8D8; 
+}
+
+  /* Mobile stock tabs */
+  .stock-tab { white-space:nowrap;padding:6px 12px;border-radius:20px;
+    font-size:12px;cursor:pointer;border:1px solid #1A3D28;color:#6B7280; }
+  .stock-tab.active { background:#0F5C2E;color:#22C55E;border-color:#22C55E; }
+</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+  
+
+<!-- Topbar -->
+<nav class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
+  <div class="flex items-center gap-2">
+    <svg width="24" height="24" viewBox="0 0 28 28">
+      <polygon points="14,2 24,7.5 24,19.5 14,25 4,19.5 4,7.5" stroke="#22C55E" stroke-width="1.5" fill="none"/>
+      <polygon points="14,5.5 21.5,9.8 21.5,18.2 14,22.5 6.5,18.2 6.5,9.8" fill="#0A2818"/>
+      <rect x="8.5" y="15" width="3" height="5" rx="0.8" fill="#0F5C2E"/>
+      <rect x="12.5" y="12" width="3" height="8" rx="0.8" fill="#16803A"/>
+      <rect x="16.5" y="9" width="3" height="11" rx="0.8" fill="#22C55E"/>
+      <line x1="18" y1="8.5" x2="18" y2="5.5" stroke="#22C55E" stroke-width="1.5" stroke-linecap="round"/>
+      <polygon points="15.5,6.5 20.5,6.5 18,4" fill="#22C55E"/>
+    </svg>
+    <div>
+      <span class="font-bold text-sm">Trade<span class="text-green-400">IQ</span></span>
+      <div class="text-xs text-green-900 tracking-widest hidden sm:block">NGX SIGNALS</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span id="auth-status" class="text-xs text-gray-500"></span>
+    <span id="last-updated" class="text-xs text-gray-600 hidden sm:block"></span>
+    <button onclick="toggleTheme()" class="text-xs px-2 py-1 rounded-full border border-gray-700 text-gray-400">🌙</button>
+  </div>
+</nav>
+
+<!-- Mobile stock selector (horizontal scroll) -->
+<div class="sm:hidden bg-gray-900 border-b border-gray-800 px-3 py-2 overflow-x-auto scrollbar-hide">
+  <div id="stock-tabs" class="flex gap-2"></div>
+</div>
+
+<!-- Layout -->
+<div class="flex h-[calc(100vh-52px)] sm:h-[calc(100vh-52px)]">
+
+  <!-- Sidebar (desktop only) -->
+  <aside class="hidden sm:flex w-44 bg-gray-900 border-r border-gray-800 flex-col flex-shrink-0">
+    <div class="px-3 py-2 text-xs text-gray-500 tracking-widest uppercase">Stocks</div>
+    <div id="stock-list" class="flex-1 overflow-y-auto scrollbar-hide"></div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+      <div>
+        <h1 id="ticker-name" class="text-xl sm:text-2xl font-bold">—</h1>
+        <p id="ticker-full" class="text-xs text-gray-400"></p>
+      </div>
+      <span id="signal-badge" class="px-3 py-1 rounded-full text-xs font-medium signal-neutral">—</span>
+    </div>
+
+    <!-- Metric cards — 2 cols mobile, 4 cols desktop -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+      <div class="card p-3">
+        <div class="text-xs text-gray-400 mb-1">Close</div>
+        <div id="m-close" class="text-lg font-bold">—</div>
+        <div id="m-change" class="text-xs mt-1">—</div>
+      </div>
+      <div class="card p-3">
+        <div class="text-xs text-gray-400 mb-1">MA7</div>
+        <div id="m-ma7" class="text-lg font-bold">—</div>
+      </div>
+      <div class="card p-3">
+        <div class="text-xs text-gray-400 mb-1">MA30</div>
+        <div id="m-ma30" class="text-lg font-bold">—</div>
+      </div>
+      <div class="card p-3">
+        <div class="text-xs text-gray-400 mb-1">RSI (14)</div>
+        <div id="m-rsi" class="text-lg font-bold">—</div>
+      </div>
+    </div>
+
+    <!-- Signal reason -->
+    <div class="card p-3">
+      <div class="text-xs text-gray-400 mb-1 uppercase tracking-wider">Signal Analysis</div>
+      <p id="signal-reason" class="text-xs sm:text-sm text-gray-300 leading-relaxed">Select a stock to view analysis.</p>
+    </div>
+
+    <!-- Charts — stacked on mobile, side by side on desktop -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="card p-3" style="height:220px">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-gray-400">Price + MA</span>
+          <div class="flex gap-2 text-xs text-gray-500">
+            <span><span class="inline-block w-2 h-0.5 bg-green-400 mr-1"></span>P</span>
+            <span><span class="inline-block w-2 h-0.5 bg-yellow-400 mr-1"></span>7</span>
+            <span><span class="inline-block w-2 h-0.5 bg-blue-400 mr-1"></span>30</span>
+          </div>
+        </div>
+        <div style="height:170px"><canvas id="price-chart"></canvas></div>
+      </div>
+      <div class="card p-3" style="height:220px">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-gray-400">RSI (14)</span>
+          <div class="flex gap-2 text-xs">
+            <span class="text-red-400">70</span>
+            <span class="text-green-400">30</span>
+          </div>
+        </div>
+        <div style="height:170px"><canvas id="rsi-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- RSI Snapshot — 3 cols mobile, 5 desktop -->
+    <div>
+      <div class="text-xs text-gray-500 uppercase tracking-widest mb-2">RSI Snapshot</div>
+      <div id="rsi-snapshot" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
+    </div>
+
+    <div class="text-xs text-gray-700 text-center pb-2">
+      TradeIQ v1 · NGX Pulse API · Educational purposes only
+    </div>
+  </main>
+</div>
+
+<script>
+const API = "/api/v1"
+let priceChart = null, rsiChart = null, isDark = true
+let authToken = localStorage.getItem("tradeiq_token")
+
+function getChartColors() {
+  return {
+    grid: isDark ? "#1A3D28" : "#D1E8D8",
+    tick: isDark ? "#4B5563" : "#374151",
+  }
+}
+
+async function checkAuth() {
+  if (authToken) {
+    // Verify token still valid
+    const test = await fetch(`${API}/auth/me`, { headers: headers() })
+    if (test.ok) {
+      document.getElementById("auth-status").textContent = "● Live"
+      return
+    }
+    localStorage.removeItem("tradeiq_token")
+    authToken = null
+  }
+
+  const email = prompt("TradeIQ — Enter your email:")
+  const pass  = prompt("Password:")
+  if (!email || !pass) { alert("Login required."); return }
+
+  const form = new FormData()
+  form.append("username", email)
+  form.append("password", pass)
+
+  const res = await fetch(`${API}/auth/login`, { method:"POST", body:form })
+  if (!res.ok) { alert("Invalid credentials."); return }
+
+  const data = await res.json()
+  authToken = data.access_token
+  localStorage.setItem("tradeiq_token", authToken)
+  document.getElementById("auth-status").textContent = "● Live"
+}
+
+function headers() {
+  return { "Authorization":`Bearer ${authToken}`, "Content-Type":"application/json" }
+}
+
+async function loadStocks() {
+  const res    = await fetch(`${API}/stocks`, { headers:headers() })
+  const stocks = await res.json()
+
+  // Desktop sidebar
+  const list = document.getElementById("stock-list")
+  list.innerHTML = stocks.map(s => `
+    <div class="stock-item px-3 py-2 cursor-pointer border-l-2 border-transparent"
+         onclick="selectStock('${s.ticker}', this, null)">
+      <div class="text-xs font-medium">${s.ticker}</div>
+      <div class="text-xs text-gray-600">${s.sector||""}</div>
+    </div>`).join("")
+
+  // Mobile tabs
+  const tabs = document.getElementById("stock-tabs")
+  tabs.innerHTML = stocks.map(s => `
+    <div class="stock-tab" onclick="selectStockMobile('${s.ticker}', this)">
+      ${s.ticker}
+    </div>`).join("")
+
+  // Auto-select first
+  if (stocks.length > 0) {
+    list.firstElementChild?.classList.add("active")
+    tabs.firstElementChild?.classList.add("active")
+    selectStock(stocks[0].ticker, list.firstElementChild, tabs.firstElementChild)
+  }
+}
+
+async function selectStock(ticker, desktopEl, mobileEl) {
+  document.querySelectorAll(".stock-item").forEach(i => i.classList.remove("active"))
+  document.querySelectorAll(".stock-tab").forEach(i => i.classList.remove("active"))
+  if (desktopEl) desktopEl.classList.add("active")
+  if (mobileEl)  mobileEl.classList.add("active")
+
+  document.getElementById("ticker-name").textContent = ticker
+  document.getElementById("last-updated").textContent = "Loading..."
+
+  await Promise.all([loadSignal(ticker), loadPrices(ticker)])
+  document.getElementById("last-updated").textContent =
+    `Updated ${new Date().toLocaleTimeString()}`
+}
+
+function selectStockMobile(ticker, tabEl) {
+  // Find matching desktop item
+  const desktopEl = [...document.querySelectorAll(".stock-item")]
+    .find(el => el.querySelector(".text-xs.font-medium")?.textContent === ticker)
+  selectStock(ticker, desktopEl, tabEl)
+}
+
+async function loadSignal(ticker) {
+  const res = await fetch(`${API}/signals/${ticker}`, { headers:headers() })
+  if (!res.ok) return
+  const s = await res.json()
+
+  document.getElementById("ticker-full").textContent    = ticker
+  document.getElementById("m-close").textContent        = `₦${Number(s.close).toLocaleString()}`
+  document.getElementById("m-ma7").textContent          = s.ma7  ? `₦${Number(s.ma7).toLocaleString()}`  : "—"
+  document.getElementById("m-ma30").textContent         = s.ma30 ? `₦${Number(s.ma30).toLocaleString()}` : "—"
+  document.getElementById("m-rsi").textContent          = s.rsi  ? Number(s.rsi).toFixed(1)               : "—"
+  document.getElementById("signal-reason").textContent  = s.signal_reason || "—"
+
+  const chgEl = document.getElementById("m-change")
+  chgEl.textContent = `${s.change_pct>=0?"▲":"▼"} ${Math.abs(s.change_pct).toFixed(2)}%`
+  chgEl.className   = `text-xs mt-1 ${s.change_pct>=0?"text-green-400":"text-red-400"}`
+
+  const badge = document.getElementById("signal-badge")
+  badge.textContent = s.signal.charAt(0).toUpperCase() + s.signal.slice(1)
+  badge.className   = `px-3 py-1 rounded-full text-xs font-medium signal-${s.signal}`
+}
+
+async function loadPrices(ticker) {
+  const res = await fetch(`${API}/prices/${ticker}?limit=60`, { headers:headers() })
+  if (!res.ok) return
+  const prices = await res.json()
+  renderPriceChart(prices)
+  renderRSIChart(prices)
+}
+
+async function loadAllSignals() {
+  const res = await fetch(`${API}/signals/all`, { headers:headers() })
+  if (!res.ok) return
+  const signals = await res.json()
+  document.getElementById("rsi-snapshot").innerHTML = signals.map(s => {
+    const rsi   = s.rsi ? Number(s.rsi).toFixed(1) : "—"
+    const color = !s.rsi?"#9CA3AF":s.rsi>70?"#EF4444":s.rsi<30?"#60A5FA":"#22C55E"
+    const pct   = s.rsi ? Math.min(s.rsi,100) : 0
+    return `<div class="card p-2 cursor-pointer" onclick="selectStockMobile('${s.ticker}',null)">
+      <div class="text-xs text-gray-400">${s.ticker}</div>
+      <div class="text-base font-bold" style="color:${color}">${rsi}</div>
+      <div class="h-1 bg-gray-800 rounded mt-1">
+        <div class="h-1 rounded" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">${s.signal}</div>
+    </div>`
+  }).join("")
+}
+
+function computeMA(closes, w) {
+  return closes.map((_,i) => {
+    if (i < w-1) return null
+    return closes.slice(i-w+1,i+1).reduce((a,b)=>a+b,0)/w
+  })
+}
+
+function renderPriceChart(prices) {
+  const data   = [...prices].reverse()
+  const labels = data.map(p=>p.date)
+  const closes = data.map(p=>Number(p.close))
+  const C = getChartColors()
+// Replace all "#1A3D28" with C.grid
+// Replace all "#4B5563" with C.tick
+  if (priceChart) priceChart.destroy()
+  priceChart = new Chart(document.getElementById("price-chart"), {
+    type:"line",
+    data:{ labels, datasets:[
+      {label:"Price",data:closes,borderColor:"#22C55E",borderWidth:1.5,pointRadius:0,tension:0.3,fill:false},
+      {label:"MA7",  data:computeMA(closes,7), borderColor:"#F59E0B",borderWidth:1.2,pointRadius:0,tension:0.3,fill:false,borderDash:[4,3]},
+      {label:"MA30", data:computeMA(closes,30),borderColor:"#60A5FA",borderWidth:1.2,pointRadius:0,tension:0.3,fill:false,borderDash:[6,4]},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:"C.tick",maxTicksLimit:6,font:{size:9}},grid:{color:"C.grid"}},
+        y:{ticks:{color:"C.tick",font:{size:9},callback:v=>`₦${Number(v).toLocaleString()}`},grid:{color:"C.grid"}}
+      }
+    }
+  })
+}
+
+function renderRSIChart(prices) {
+  const closes = [...prices].reverse().map(p=>Number(p.close))
+  const labels = [...prices].reverse().map(p=>p.date)
+  const C = getChartColors()
+// Replace all "#1A3D28" with C.grid
+// Replace all "#4B5563" with C.tick
+  const rsiData = closes.map((_,i)=>{
+    if(i<14) return null
+    const slice   = closes.slice(i-14,i+1)
+    const changes = slice.slice(1).map((v,j)=>v-slice[j])
+    const ag = changes.map(c=>c>0?c:0).reduce((a,b)=>a+b,0)/14
+    const al = changes.map(c=>c<0?Math.abs(c):0).reduce((a,b)=>a+b,0)/14
+    return al===0?100:100-(100/(1+ag/al))
+  })
+  if (rsiChart) rsiChart.destroy()
+  rsiChart = new Chart(document.getElementById("rsi-chart"), {
+    type:"line",
+    data:{ labels, datasets:[
+      {label:"RSI",data:rsiData,borderColor:"#A78BFA",borderWidth:1.5,pointRadius:0,tension:0.3,fill:false}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:"C.tick",maxTicksLimit:6,font:{size:9}},grid:{color:"C.grid"}},
+        y:{min:0,max:100,ticks:{color:"C.tick",font:{size:9},stepSize:25},grid:{color:"C.grid"}}
+      }
+    }
+  })
+}
+
+function toggleTheme() {
+  isDark = !isDark
+  document.body.classList.toggle("bg-gray-950", isDark)
+  document.body.classList.toggle("bg-gray-50", !isDark)
+  document.body.classList.toggle("text-white", isDark)
+  document.body.classList.toggle("text-gray-900", !isDark)
+  document.body.classList.toggle("light-mode", !isDark)
+  
+  // Redraw charts with new colors
+  const ticker = document.getElementById("ticker-name").textContent
+  if (ticker !== "—") loadPrices(ticker)
+}
+
+async function init() {
+  await checkAuth()
+  await Promise.all([loadStocks(), loadAllSignals()])
+}
+init()
+</script>
+</body>
+</html>
