@@ -426,6 +426,41 @@ async def market_news_explained():
         raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 
+@app.post("/market/explain/signal")
+async def explain_signal(signal_data: dict):
+    """
+    Receives computed signal from main FastAPI.
+    Sends to Groq. Returns plain-English explanation.
+    """
+    prompt = (
+        f"You are a financial educator explaining NGX stock signals to Nigerian retail investors.\n\n"
+        f"Here is the technical signal for {signal_data.get('ticker')}:\n"
+        f"- Close price: ₦{signal_data.get('close')}\n"
+        f"- 7-day MA: ₦{signal_data.get('ma7')}\n"
+        f"- 30-day MA: ₦{signal_data.get('ma30')}\n"
+        f"- RSI: {signal_data.get('rsi')}\n"
+        f"- Signal: {signal_data.get('signal')}\n"
+        f"- Change: {signal_data.get('change_pct')}%\n\n"
+        f"Write a clear 6-8 sentence plain-English explanation of what this means "
+        f"for an everyday Nigerian investor. Mention the actual numbers. "
+        f"No jargon. No buy/sell advice. Return only the paragraph."
+    )
+
+    def _call() -> str:
+        response = groq_client.chat.completions.create(
+            model=settings.groq_model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()
+
+    try:
+        import asyncio
+        explanation = await asyncio.to_thread(_call)
+        return {"ticker": signal_data.get("ticker"), "explanation": explanation}
+    except Exception as e:
+        logger.error("Signal explanation failed: %s", e)
+        raise HTTPException(status_code=502, detail=f"Groq error: {e}")
+
 # ---------------------------------------------------------------------------
 # Dev entrypoint. In production, run via:
 #   uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
