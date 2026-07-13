@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ENV: str = "development"
     NGX_PULSE_API_KEY: str = ""
+    MARKET_INTEL_URL: str = "https://tradeiq-microservices.onrender.com"
 
     model_config = ConfigDict(env_file=".env")
 

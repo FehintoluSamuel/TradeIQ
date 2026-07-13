@@ -13,6 +13,8 @@ from app.models import Stock, DailyPrice
 from app.schemas import SignalResponse
 from app.indicators import compute_ma, compute_rsi, determine_signal
 from app.routers.prices import get_stock_or_404
+import httpx
+from app.database import settings
 
 
 router = APIRouter()
@@ -36,6 +38,9 @@ TICKERS = [
     "BUACEMENT", "BUAFOODS",
 ]
 
+
+
+MARKET_INTEL_URL = "http://localhost:8001"  # your microservice
 
 # ── Private helper ────────────────────────────────────────────────────────────
 
@@ -110,3 +115,41 @@ def get_all_signals(db: Session = Depends(get_db)):
 def get_ticker_signal(ticker: str, db: Session = Depends(get_db)):
     """Return the full technical signal for a single stock."""
     return _compute_signal(ticker, db)
+
+
+
+
+        
+
+
+@router.get("/signals/{ticker}/explain")
+async def explain_ticker_signal(ticker: str, db: Session = Depends(get_db)):
+    """
+    Computes signal then forwards to market-intel microservice for AI explanation.
+    """
+    # Compute signal using existing logic
+    signal = _compute_signal(ticker, db)
+
+    # Forward to microservice
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.post(
+                f"{settings.MARKET_INTEL_URL}/market/explain/signal",
+                json={
+                    "ticker":     signal.ticker,
+                    "close":      str(signal.close),
+                    "ma7":        str(signal.ma7)  if signal.ma7  else None,
+                    "ma30":       str(signal.ma30) if signal.ma30 else None,
+                    "rsi":        signal.rsi,
+                    "signal":     signal.signal,
+                    "change_pct": signal.change_pct,
+                },
+                timeout=30,
+            )
+            res.raise_for_status()
+            return res.json()
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Market intel service unavailable: {e}"
+            )
