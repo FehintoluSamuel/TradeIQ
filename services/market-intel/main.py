@@ -2,12 +2,13 @@
 TradeIQ Market Intelligence Microservice
 =========================================
 
-Serves four things behind a single FastAPI app:
-  1. GET /market/snapshot            -> NGX daily market data
-  2. GET /market/snapshot/explained  -> Same data, explained in plain English (Groq/Llama)
-  3. GET /market/news                -> Raw NGX-related headlines (NewsAPI)
-  4. GET /market/news/explained      -> Headlines rewritten in plain English (Groq/Llama)
-  5. GET /healthz                    -> liveness/readiness probe
+Serves these things behind a single FastAPI app:
+  1. GET  /market/snapshot            -> NGX daily market data
+  2. GET  /market/snapshot/explained  -> Same data, explained in plain English (Groq/Llama)
+  3. GET  /market/news                -> Raw NGX-related headlines (NewsAPI)
+  4. GET  /market/news/explained      -> Headlines rewritten in plain English (Groq/Llama)
+  5. POST /market/explain/signal      -> Plain-English read of a technical signal (MA/RSI/etc.)
+  6. GET  /healthz                    -> liveness/readiness probe
 
 Design goals
 ------------
@@ -34,6 +35,7 @@ Or with the built-in dev runner:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
@@ -287,7 +289,7 @@ async def fetch_market_news() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Upstream: Groq plain-English explanation
+# Upstream: Groq plain-English explanations
 # ---------------------------------------------------------------------------
 def _build_explainer_prompt(title: str, description: str) -> str:
     return (
@@ -304,8 +306,6 @@ def _build_explainer_prompt(title: str, description: str) -> str:
 
 async def _explain_one(article: dict) -> dict:
     """Runs the (sync) Groq SDK call in a worker thread so it doesn't block the event loop."""
-    import asyncio
-
     assert groq_client is not None
     prompt = _build_explainer_prompt(article["title"], article["description"])
 
@@ -327,8 +327,6 @@ async def _explain_one(article: dict) -> dict:
 
 @cached(_explained_cache, key="explained")
 async def fetch_explained_news() -> list[dict]:
-    import asyncio
-
     articles = await fetch_market_news()
     top = articles[: settings.groq_max_articles]
     # Fan out the LLM calls concurrently instead of one-by-one.
@@ -352,8 +350,6 @@ def _build_snapshot_prompt(snapshot: dict) -> str:
 
 async def _explain_snapshot(snapshot: dict) -> str:
     """Runs the (sync) Groq SDK call in a worker thread so it doesn't block the event loop."""
-    import asyncio
-
     assert groq_client is not None
     prompt = _build_snapshot_prompt(snapshot)
 
@@ -380,6 +376,46 @@ async def fetch_explained_snapshot() -> dict:
     snapshot = await fetch_ngx_snapshot()
     explanation = await _explain_snapshot(snapshot)
     return {**snapshot, "explanation": explanation}
+
+
+# ---------------------------------------------------------------------------
+# On-demand: plain-English read of a technical signal (MA/RSI/etc.)
+# This one is POSTed per-ticker with fresh numbers each time, so it is
+# intentionally NOT cached the same way — the caller controls the input.
+# ---------------------------------------------------------------------------
+def _build_signal_prompt(signal_data: dict) -> str:
+    ticker = signal_data.get("ticker")
+    close = signal_data.get("close")
+    ma7 = signal_data.get("ma7")
+    ma30 = signal_data.get("ma30")
+    rsi = signal_data.get("rsi")
+    signal = signal_data.get("signal", "")
+    chg = signal_data.get("change_pct", 0)
+
+    return f"""
+You are a senior Nigerian capital market analyst writing for retail investors on the NGX.
+
+You have been given the following technical data for {ticker}:
+- Today's closing price: ₦{close} ({chg:+}% change)
+- 7-day Moving Average (MA7): ₦{ma7}
+- 30-day Moving Average (MA30): ₦{ma30}
+- RSI (14-day): {rsi}
+- Overall signal: {signal.upper()}
+
+Write a comprehensive 10-12 sentence analysis that does ALL of the following:
+1. State clearly whether the stock is trending up, down, or sideways — and by how much
+2. Explain what the MA7 vs MA30 relationship means in plain English (is there a golden cross or death cross forming?)
+3. Interpret the RSI — is momentum strengthening or weakening? Is the stock overbought or oversold?
+4. Explain what the {signal.upper()} signal means practically for someone holding this stock
+5. Explain what it means for someone considering buying this stock
+6. Identify one risk factor based on the data
+7. End with one actionable observation — NOT buy/sell advice, but what to watch for next
+
+Write for someone with no finance background. Explain every technical term you use in the same sentence.
+Use ₦ for prices. Be specific — reference the actual numbers throughout.
+Do not repeat the raw data mechanically. Interpret it. Tell a story about what is happening with this stock.
+Return only the analysis paragraph. No headers. No bullet points. No preamble.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -428,38 +464,26 @@ async def market_news_explained():
 
 @app.post("/market/explain/signal")
 async def explain_signal(signal_data: dict):
-    """
-    Receives computed signal from main FastAPI.
-    Sends to Groq. Returns plain-English explanation.
-    """
-    prompt = (
-        f"You are a financial educator explaining NGX stock signals to Nigerian retail investors.\n\n"
-        f"Here is the technical signal for {signal_data.get('ticker')}:\n"
-        f"- Close price: ₦{signal_data.get('close')}\n"
-        f"- 7-day MA: ₦{signal_data.get('ma7')}\n"
-        f"- 30-day MA: ₦{signal_data.get('ma30')}\n"
-        f"- RSI: {signal_data.get('rsi')}\n"
-        f"- Signal: {signal_data.get('signal')}\n"
-        f"- Change: {signal_data.get('change_pct')}%\n\n"
-        f"Write a clear 6-8 sentence plain-English explanation of what this means "
-        f"for an everyday Nigerian investor. Mention the actual numbers. "
-        f"No jargon. No buy/sell advice. Return only the paragraph."
-    )
+    assert groq_client is not None
+    prompt = _build_signal_prompt(signal_data)
 
     def _call() -> str:
         response = groq_client.chat.completions.create(
             model=settings.groq_model,
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=800,
         )
         return response.choices[0].message.content.strip()
 
     try:
-        import asyncio
         explanation = await asyncio.to_thread(_call)
-        return {"ticker": signal_data.get("ticker"), "explanation": explanation}
     except Exception as e:
-        logger.error("Signal explanation failed: %s", e)
+        logger.error("signal explanation failed: %s", e)
         raise HTTPException(status_code=502, detail=f"Groq error: {e}")
+
+    return {"ticker": signal_data.get("ticker"), "explanation": explanation}
+
 
 # ---------------------------------------------------------------------------
 # Dev entrypoint. In production, run via:
