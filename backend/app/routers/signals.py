@@ -15,6 +15,8 @@ from app.indicators import compute_ma, compute_rsi, determine_signal
 from app.routers.prices import get_stock_or_404
 import httpx
 from app.database import settings
+import os
+
 
 
 router = APIRouter()
@@ -40,7 +42,7 @@ TICKERS = [
 
 
 
-MARKET_INTEL_URL = "http://localhost:8001"  # your microservice
+
 
 # ── Private helper ────────────────────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ async def explain_ticker_signal(ticker: str, db: Session = Depends(get_db)):
     async with httpx.AsyncClient() as client:
         try:
             res = await client.post(
-                f"{settings.MARKET_INTEL_URL}/market/explain/signal",
+                f"{settings.MARKET_INTEL_URL}/market/explain/signal", 
                 json={
                     "ticker":     signal.ticker,
                     "close":      str(signal.close),

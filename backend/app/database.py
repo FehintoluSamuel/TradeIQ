@@ -8,8 +8,11 @@ from typing import Generator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import ConfigDict
+import os
+
+
 
 
 # ── Settings ────────────────────────────────────────────────────────────────
@@ -21,9 +24,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ENV: str = "development"
     NGX_PULSE_API_KEY: str = ""
-    MARKET_INTEL_URL: str = "https://tradeiq-microservices.onrender.com"
+    MARKET_INTEL_URL: str = "http://localhost:8001"
 
-    model_config = ConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 # ── Engine ───────────────────────────────────────────────────────────────────
@@ -69,4 +72,4 @@ def get_db() -> Generator[Session, None, None]:
 # ── Public interface ──────────────────────────────────────────────────────────
 #This is everything that gets imported when you do `from database import *`.
 
-all = ["Base", "engine", "get_db", "SessionLocal", "settings"]
+__all__ = ["Base", "engine", "get_db", "SessionLocal", "settings"]
