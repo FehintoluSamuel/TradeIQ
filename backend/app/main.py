@@ -94,7 +94,7 @@ def health_check():
 
 
 # ── Manual scraper trigger ──────────────────────────────────────────────────────────────
-@app.get("/api/v1/admin/scrape", tags=["admin"])
+@app.get("/api/v1/admin/scrape", tags=["admin"], include_in_schema=False)
 def trigger_scrape(current_user: User = Depends(get_current_user)):
     """Manually trigger scraper — admin only."""
     if current_user.role != "admin":
@@ -104,6 +104,9 @@ def trigger_scrape(current_user: User = Depends(get_current_user)):
         )
     scraper_job()
     return {"status": "scraper triggered", "triggered_by": current_user.email}
+
+
+# ── Manual scraper trigger ──────────────────────────────────────────────────────────────
 
 
 # ── Temporarily render the frontend──────────────────────────────────────────────────────────────
