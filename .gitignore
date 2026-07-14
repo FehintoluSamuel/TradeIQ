@@ -34,3 +34,7 @@ tests/
 
 #add admin
 add_admin.py
+
+
+#frontend folder temporarily ignored
+tradeiq-mobile/
