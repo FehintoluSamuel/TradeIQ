@@ -2,8 +2,8 @@ name: Daily TradeIQ Scraper
 
 on:
   schedule:
-    # 15:35 WAT = 14:35 UTC
-    - cron: "35 14 * * 1-5"
+    # 16:35 WAT = 15:35 UTC
+    - cron: "30 15 * * 1-5"
 
   workflow_dispatch:
 
