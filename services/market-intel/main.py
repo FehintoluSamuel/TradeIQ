@@ -47,6 +47,7 @@ import httpx
 from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -156,7 +157,17 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app.add_middleware(
 
+            CORSMiddleware,
+
+        allow_origins=["*"],  # tighten to your real deployed web domain(s) before production launch
+
+        allow_methods=["*"],
+
+        allow_headers=["*"],
+
+        )
 
 # ---------------------------------------------------------------------------
 # Request-ID + timing middleware — makes every log line traceable and every
