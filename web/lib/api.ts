@@ -1,5 +1,6 @@
 const API_BASE_URL = 'https://tradeiq-12gh.onrender.com';
 const MARKET_INTEL_BASE_URL = 'https://tradeiq-microservices.onrender.com';
+const TOKEN_KEY = 'tradeiq-token'; // must match lib/AuthContext.tsx
 
 export class ApiError extends Error {
   status: number;
@@ -22,6 +23,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     throw new ApiError(detail, res.status);
   }
   return res.json();
+}
+
+// Protected endpoints (stocks, prices, signals) need this header — it was
+// missing entirely before, which is why those calls were failing with
+// "Not authenticated" even after a successful login.
+function authHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export type Stock = { id: number; ticker: string; full_name: string; sector: string };
