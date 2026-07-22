@@ -2,15 +2,12 @@
 
 /**
  * app/(app)/page.tsx — Home / Dashboard
- * Layout order: header -> hero index card with signal chips -> watchlist
- * (sparkline cards for a few tickers) -> scrolling news ticker, placed
- * mid-screen, between the watchlist and the detailed per-ticker view ->
- * selector tabs + metrics + charts + explain button for whichever ticker
- * is selected (doc's Screen 1 spec, kept from the previous build).
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/lib/ThemeContext';
+import { useAuth } from '@/lib/AuthContext';
 import { api, Stock, Signal, Price, MarketSnapshot, ApiError } from '@/lib/api';
 import { BellIcon, MoonIcon, SunIcon, hexForSignal, bgForSignal } from '@/components/Icons';
 import { PriceChart, RsiChart } from '@/components/Charts';
@@ -28,6 +25,8 @@ const RANGE_OPTIONS = [
 
 export default function HomePage() {
   const { isDark, toggleTheme } = useTheme();
+  const { username } = useAuth();
+  const router = useRouter();
 
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [allSignals, setAllSignals] = useState<Signal[]>([]);
@@ -35,6 +34,7 @@ export default function HomePage() {
   const [watchlistSparklines, setWatchlistSparklines] = useState<Record<string, number[]>>({});
 
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [rangeDays, setRangeDays] = useState<number>(RANGE_OPTIONS[0].days);
   const [signal, setSignal] = useState<Signal | null>(null);
   const [prices, setPrices] = useState<Price[]>([]);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -52,9 +52,6 @@ export default function HomePage() {
         setAllSignals(signalsRes);
         setSnapshot(snapshotRes);
 
-        // Support deep-linking from /tickers ("See all") — if the URL has
-        // ?ticker=X and it's a real ticker, select that one instead of
-        // always defaulting to the first stock in the list.
         const requested = new URLSearchParams(window.location.search).get('ticker');
         const isValidRequested = requested && stocksRes.some((s) => s.ticker === requested);
         setSelectedTicker(isValidRequested ? requested : stocksRes[0]?.ticker ?? null);
@@ -86,7 +83,7 @@ export default function HomePage() {
     setError(null);
     setExplanation(null);
 
-    Promise.all([api.getSignal(selectedTicker), api.getPrices(selectedTicker, 30)])
+    Promise.all([api.getSignal(selectedTicker), api.getPrices(selectedTicker, rangeDays)])
       .then(([signalRes, pricesRes]) => {
         if (cancelled) return;
         setSignal(signalRes);
@@ -105,7 +102,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedTicker]);
+  }, [selectedTicker, rangeDays]);
 
   async function handleExplain() {
     if (!selectedTicker) return;
@@ -132,26 +129,35 @@ export default function HomePage() {
 
   const rsiData = chartData.map((d) => ({ date: d.date, rsi: signal?.rsi ?? 50 }));
   const watchlistSignals = allSignals.slice(0, WATCHLIST_SIZE);
+  const initials = (username ?? 'U').slice(0, 2).toUpperCase();
 
   return (
     <div className="px-4 pt-4 md:pt-0">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-[28px] font-semibold">Dashboard</h1>
+        <div>
+          <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396]">Welcome</p>
+          <h1 className="text-xl md:text-2xl font-semibold">{username ?? 'there'}</h1>
+        </div>
         <div className="flex items-center gap-2">
-          {false && (
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle dark mode"
-              className="w-8 h-8 rounded-full bg-[#F2F2F7] dark:bg-[#12211A] flex items-center justify-center hover:opacity-70 transition-opacity"
-            >
-              {isDark ? <SunIcon /> : <MoonIcon />}
-            </button>
-          )}
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            className="w-8 h-8 rounded-full bg-[#F2F2F7] dark:bg-[#12211A] flex items-center justify-center hover:opacity-70 transition-opacity"
+          >
+            {isDark ? <SunIcon /> : <MoonIcon />}
+          </button>
           <button
             aria-label="Notifications"
             className="w-8 h-8 rounded-full bg-[#F2F2F7] dark:bg-[#12211A] flex items-center justify-center hover:opacity-70 transition-opacity"
           >
             <BellIcon />
+          </button>
+          <button
+            onClick={() => router.push('/profile')}
+            aria-label="Profile"
+            className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-[11px] font-semibold hover:opacity-80 transition-opacity"
+          >
+            {initials}
           </button>
         </div>
       </div>
@@ -253,6 +259,22 @@ export default function HomePage() {
           </div>
 
           <p className="text-sm text-[#8A8FA3] dark:text-[#8FA396] leading-relaxed mb-6">{signal.signal_reason}</p>
+
+          <div className="flex gap-2 mb-3">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => setRangeDays(opt.days)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  rangeDays === opt.days
+                    ? 'bg-[#0A2233] dark:bg-brand-primary text-white'
+                    : 'bg-[#F5F6FA] dark:bg-[#12211A] text-[#8A8FA3] dark:text-[#8FA396]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <div className="bg-[#FAFBFC] dark:bg-[#0A2818] border border-[#EFEFF2] dark:border-[#17251C] rounded-2xl p-4 mb-4">
             <p className="text-sm font-semibold mb-2">Price · MA7 · MA30</p>

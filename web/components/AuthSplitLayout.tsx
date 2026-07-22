@@ -28,7 +28,7 @@ export function AuthSplitLayout({
   children: React.ReactNode;
 }) {
   const { isDark, toggleTheme } = useTheme();
-  const SHOW_THEME_TOGGLE = false; // flip true once light mode is revisited
+  const SHOW_THEME_TOGGLE = true; // real users asked for the choice back
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row relative">
@@ -46,7 +46,7 @@ export function AuthSplitLayout({
       {/* Image panel — desktop only */}
       <div
         className="hidden md:flex md:w-[46%] md:flex-col md:justify-between md:p-10 relative bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/aims-hero.jpg')" }}
+        style={{ backgroundImage: "url('/images/auth-hero.jpg')" }}
       >
         {/* Dark only at the top and bottom where text sits — the middle
             stays clear so the photo is actually visible, not buried under
@@ -68,7 +68,7 @@ export function AuthSplitLayout({
 
       {/* Form panel — full width on mobile with the image as a background */}
       <div className="flex-1 relative flex flex-col justify-center items-center px-6 py-12 md:py-0 bg-white dark:bg-brand-dark">
-        <div className="md:hidden absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/aims-hero.jpg')" }}>
+        <div className="md:hidden absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/images/auth-hero.jpg')" }}>
           {/* Dark theme: photo stays moody and dark. */}
           <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/75" />
           {/* Light theme: mostly white wash, just a hint of the photo through. */}

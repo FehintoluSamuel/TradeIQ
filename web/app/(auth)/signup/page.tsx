@@ -23,7 +23,7 @@ export default function SignupPage() {
       // right after is the safer path until that's confirmed either way.
       await api.signup(values.username ?? '', values.email, values.password);
       const res = await api.login(values.email, values.password);
-      login(res.access_token);
+      login(res.access_token, values.username);
       router.push('/');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not create your account. Please try again.');

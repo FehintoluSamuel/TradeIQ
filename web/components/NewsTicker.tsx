@@ -62,7 +62,7 @@ export function NewsTicker() {
       <div className="flex items-center gap-2 px-4 mb-2">
         <span className="w-1.5 h-1.5 rounded-full bg-signal-bearish animate-pulse" />
         <span className="text-[10px] font-semibold text-signal-bearish tracking-wide">LIVE</span>
-        <span className="text-[10px] text-[#8A8FA3]">Newsflash</span>
+        <span className="text-[10px] text-[#8A8FA3]">Stockflash</span>
       </div>
       <div className="overflow-hidden whitespace-nowrap">
         <div className="inline-flex gap-10 animate-marquee">

@@ -22,12 +22,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Light-only for v1 — this was previously locked to dark for the auth
-    // screens specifically, but that setting is global and was making the
-    // entire app (Dashboard/Market/News) render dark too, not just Welcome/
-    // Login/Signup. White is the main surface color for the app; green is
-    // an accent only. Toggle infrastructure kept intact for later.
-    setIsDark(false);
+    // Light is the default (white is the main surface color), but this is
+    // a genuine toggle now, not locked — real users asked for the choice
+    // back. A previously stored explicit choice always wins.
+    const stored = localStorage.getItem('tradeiq-theme');
+    setIsDark(stored === 'dark');
     setMounted(true);
   }, []);
 

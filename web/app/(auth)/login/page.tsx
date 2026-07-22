@@ -9,7 +9,7 @@ import { AuthForm } from '@/components/AuthForm';
 import { AuthSplitLayout } from '@/components/AuthSplitLayout';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, username: existingUsername } = useAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,10 @@ export default function LoginPage() {
     setError(null);
     try {
       const res = await api.login(values.email, values.password);
-      login(res.access_token);
+      // Don't clobber a real username from a prior signup on this device —
+      // only fall back to the email prefix if nothing's stored yet.
+      const nameToStore = existingUsername ?? values.email.split('@')[0];
+      login(res.access_token, nameToStore);
       router.push('/');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not log in. Please try again.');
