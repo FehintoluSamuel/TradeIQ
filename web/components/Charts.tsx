@@ -14,6 +14,10 @@ import {
   TooltipProps,
 } from 'recharts';
 
+import type {
+  TooltipContentProps,
+} from 'recharts';
+
 type PricePoint = { date: string; close: number; ma7?: number; ma30?: number };
 type RsiPoint = { date: string; rsi: number };
 
