@@ -22,11 +22,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Dark-only for v1 — light mode is parked, not deleted. Re-enable by
-    // restoring the localStorage/system-preference check that used to be
-    // here, and un-hiding the toggle buttons in AuthSplitLayout and the
-    // Dashboard header.
-    setIsDark(true);
+    // Light-only for v1 — this was previously locked to dark for the auth
+    // screens specifically, but that setting is global and was making the
+    // entire app (Dashboard/Market/News) render dark too, not just Welcome/
+    // Login/Signup. White is the main surface color for the app; green is
+    // an accent only. Toggle infrastructure kept intact for later.
+    setIsDark(false);
     setMounted(true);
   }, []);
 

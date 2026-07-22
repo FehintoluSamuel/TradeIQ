@@ -1,22 +1,32 @@
 'use client';
 
 /**
- * app/page.tsx — Home / Dashboard
- * Matches the handoff doc's actual Screen 1 spec: a stock selector, signal
- * badge, four metric cards, price chart with MA overlay, RSI chart, and an
- * Explain button — per ticker, not the index-wide view (that's /market).
+ * app/(app)/page.tsx — Home / Dashboard
+ * Layout order: header -> hero index card with signal chips -> watchlist
+ * (sparkline cards for a few tickers) -> scrolling news ticker, placed
+ * mid-screen, between the watchlist and the detailed per-ticker view ->
+ * selector tabs + metrics + charts + explain button for whichever ticker
+ * is selected (doc's Screen 1 spec, kept from the previous build).
  */
 import { useEffect, useState } from 'react';
 import { useTheme } from '@/lib/ThemeContext';
-import { api, Stock, Signal, Price, ApiError } from '@/lib/api';
-import { BellIcon, MoonIcon, SunIcon, colorForSignal, bgForSignal } from '@/components/Icons';
+import { api, Stock, Signal, Price, MarketSnapshot, ApiError } from '@/lib/api';
+import { BellIcon, MoonIcon, SunIcon, hexForSignal, bgForSignal } from '@/components/Icons';
 import { PriceChart, RsiChart } from '@/components/Charts';
 import { MetricCard } from '@/components/MetricCard';
+import { WatchlistCard } from '@/components/WatchlistCard';
+import { NewsTicker } from '@/components/NewsTicker';
+
+const WATCHLIST_SIZE = 4;
 
 export default function HomePage() {
   const { isDark, toggleTheme } = useTheme();
 
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [allSignals, setAllSignals] = useState<Signal[]>([]);
+  const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
+  const [watchlistSparklines, setWatchlistSparklines] = useState<Record<string, number[]>>({});
+
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [signal, setSignal] = useState<Signal | null>(null);
   const [prices, setPrices] = useState<Price[]>([]);
@@ -25,18 +35,37 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load the stock list once, select the first ticker by default.
   useEffect(() => {
-    api
-      .getStocks()
-      .then((data) => {
-        setStocks(data);
-        if (data.length > 0) setSelectedTicker(data[0].ticker);
+    let cancelled = false;
+
+    Promise.all([api.getStocks(), api.getAllSignals(), api.getMarketSnapshot()])
+      .then(async ([stocksRes, signalsRes, snapshotRes]) => {
+        if (cancelled) return;
+        setStocks(stocksRes);
+        setAllSignals(signalsRes);
+        setSnapshot(snapshotRes);
+        if (stocksRes.length > 0) setSelectedTicker(stocksRes[0].ticker);
+
+        const watchlistTickers = signalsRes.slice(0, WATCHLIST_SIZE).map((s) => s.ticker);
+        const sparklineEntries = await Promise.all(
+          watchlistTickers.map(async (ticker) => {
+            try {
+              const p = await api.getPrices(ticker, 14);
+              return [ticker, p.slice().reverse().map((price) => parseFloat(price.close))] as const;
+            } catch {
+              return [ticker, []] as const;
+            }
+          })
+        );
+        if (!cancelled) setWatchlistSparklines(Object.fromEntries(sparklineEntries));
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load stocks.'));
+      .catch((e) => setError(e instanceof ApiError ? e.message : 'Could not load market data.'));
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Load signal + prices whenever the selected ticker changes.
   useEffect(() => {
     if (!selectedTicker) return;
     let cancelled = false;
@@ -89,14 +118,13 @@ export default function HomePage() {
     }));
 
   const rsiData = chartData.map((d) => ({ date: d.date, rsi: signal?.rsi ?? 50 }));
+  const watchlistSignals = allSignals.slice(0, WATCHLIST_SIZE);
 
   return (
     <div className="px-4 pt-4 md:pt-0">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl md:text-[28px] font-semibold">Dashboard</h1>
         <div className="flex items-center gap-2">
-          {/* Theme toggle — parked for v1, dark-only */}
           {false && (
             <button
               onClick={toggleTheme}
@@ -115,7 +143,58 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Stock selector */}
+      {snapshot && (
+        <div className="bg-[#F5F6FA] dark:bg-[#12211A] border border-[#EFEFF2] dark:border-[#17251C] rounded-3xl p-5 mb-6">
+          <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396] mb-1">NGX All-Share Index</p>
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="font-display text-[#0A2233] dark:text-white text-[26px]">
+              {snapshot.all_share_index.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
+            <span className={`text-xs font-semibold ${snapshot.asi_change_percent >= 0 ? 'text-signal-bullish' : 'text-signal-bearish'}`}>
+              {snapshot.asi_change_percent >= 0 ? '▲' : '▼'} {Math.abs(snapshot.asi_change_percent)}%
+            </span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {allSignals.slice(0, 5).map((s) => (
+              <span
+                key={s.ticker}
+                className={`shrink-0 bg-white dark:bg-[#0A2818] text-[11px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap border border-[#EFEFF2] dark:border-[#17251C] ${
+                  s.change_pct >= 0 ? 'text-signal-bullish' : 'text-signal-bearish'
+                }`}
+              >
+                {s.ticker} {s.change_pct >= 0 ? '+' : ''}
+                {s.change_pct}%
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {watchlistSignals.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold">Watchlist</h2>
+            <span className="text-xs text-brand-primary dark:text-brand-accent font-medium">See all</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4 md:mx-0 md:px-0">
+            {watchlistSignals.map((s) => (
+              <WatchlistCard
+                key={s.ticker}
+                ticker={s.ticker}
+                price={parseFloat(s.close).toLocaleString()}
+                changePct={s.change_pct}
+                sparkline={watchlistSparklines[s.ticker] ?? []}
+                color={hexForSignal(s.signal)}
+                active={selectedTicker === s.ticker}
+                onClick={() => setSelectedTicker(s.ticker)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      <NewsTicker />
+
       <div className="flex gap-2 overflow-x-auto pb-2 mb-5 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar">
         {stocks.map((stock) => (
           <button
@@ -137,7 +216,6 @@ export default function HomePage() {
 
       {signal && !loading && (
         <>
-          {/* Price + signal badge */}
           <div className="flex items-start justify-between mb-5">
             <div>
               <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396]">{selectedTicker}</p>
@@ -152,7 +230,6 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Metric cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <MetricCard label="Close" value={`₦${parseFloat(signal.close).toLocaleString()}`} />
             <MetricCard label="MA7" value={signal.ma7 ? `₦${parseFloat(signal.ma7).toLocaleString()}` : '—'} />
@@ -160,22 +237,18 @@ export default function HomePage() {
             <MetricCard label="RSI" value={signal.rsi.toFixed(1)} />
           </div>
 
-          {/* Signal reason */}
           <p className="text-sm text-[#8A8FA3] dark:text-[#8FA396] leading-relaxed mb-6">{signal.signal_reason}</p>
 
-          {/* Price chart */}
           <div className="bg-[#FAFBFC] dark:bg-[#0A2818] border border-[#EFEFF2] dark:border-[#17251C] rounded-2xl p-4 mb-4">
             <p className="text-sm font-semibold mb-2">Price · MA7 · MA30</p>
             <PriceChart data={chartData} />
           </div>
 
-          {/* RSI chart */}
           <div className="bg-[#FAFBFC] dark:bg-[#0A2818] border border-[#EFEFF2] dark:border-[#17251C] rounded-2xl p-4 mb-6">
             <p className="text-sm font-semibold mb-2">RSI (14)</p>
             <RsiChart data={rsiData} />
           </div>
 
-          {/* Explain button */}
           <button
             onClick={handleExplain}
             disabled={explaining}

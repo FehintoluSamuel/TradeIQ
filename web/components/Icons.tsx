@@ -95,3 +95,16 @@ export function bgForSignal(signal: string): string {
   };
   return map[signal.toLowerCase()] ?? map.neutral;
 }
+
+// For spots needing a literal color value (inline style props, SVG stroke),
+// where a Tailwind class string like the two helpers above can't be used.
+export function hexForSignal(signal: string): string {
+  const map: Record<string, string> = {
+    bullish: '#16A34A',
+    bearish: '#DC2626',
+    overbought: '#F59E0B',
+    oversold: '#60A5FA',
+    neutral: '#9CA3AF',
+  };
+  return map[signal.toLowerCase()] ?? map.neutral;
+}
