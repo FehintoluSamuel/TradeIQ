@@ -75,6 +75,9 @@ export const api = {
   getAllSignals: () => request<Signal[]>(`${API_BASE_URL}/api/v1/signals/all`, { headers: authHeaders() }),
   getSignal: (ticker: string) =>
     request<Signal>(`${API_BASE_URL}/api/v1/signals/${ticker}`, { headers: authHeaders() }),
+  // Confirmed with backend team: this internally calls the market-intel
+  // microservice's POST /market/explain/signal — the frontend only needs
+  // to call this one endpoint, not both.
   explainSignal: (ticker: string) =>
     request<{ ticker: string; explanation: string }>(`${API_BASE_URL}/api/v1/signals/${ticker}/explain`, {
       headers: authHeaders(),

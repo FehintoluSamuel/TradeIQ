@@ -3,21 +3,56 @@
 import { useEffect, useState } from 'react';
 import { api, NewsArticle, ApiError } from '@/lib/api';
 
+/**
+ * NewsTicker.tsx
+ * Genuinely fetches from GET /market/news — not hardcoded. Previously this
+ * failed silently (console.warn only) if the request failed, which made it
+ * indistinguishable from "not actually wired up." Now shows a real loading
+ * state and a real error message, so a failure is visible and debuggable
+ * instead of just rendering nothing.
+ */
 export function NewsTicker() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api
       .getNews()
       .then((res) => setArticles(res.articles))
-      .catch((e) => {
-        // Non-critical for the dashboard — fail silently rather than
-        // blocking the rest of the page over a news-strip fetch.
-        if (e instanceof ApiError) console.warn('News ticker fetch failed:', e.message);
-      });
+      .catch((e) =>
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : 'Could not reach the news service. If this is the first request in a while, it may be waking up.'
+        )
+      )
+      .finally(() => setLoading(false));
   }, []);
 
-  if (articles.length === 0) return null;
+  if (loading) {
+    return (
+      <div className="bg-[#0A2233] dark:bg-[#12211A] rounded-2xl py-3 px-4 mb-6">
+        <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396]">Loading newsflash…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#0A2233] dark:bg-[#12211A] rounded-2xl py-3 px-4 mb-6">
+        <p className="text-xs text-signal-bearish">Newsflash unavailable: {error}</p>
+      </div>
+    );
+  }
+
+  if (articles.length === 0) {
+    return (
+      <div className="bg-[#0A2233] dark:bg-[#12211A] rounded-2xl py-3 px-4 mb-6">
+        <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396]">No news available right now.</p>
+      </div>
+    );
+  }
 
   // Duplicate the list so the marquee loops seamlessly instead of jumping.
   const loop = [...articles, ...articles];

@@ -9,6 +9,7 @@
  * is selected (doc's Screen 1 spec, kept from the previous build).
  */
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useTheme } from '@/lib/ThemeContext';
 import { api, Stock, Signal, Price, MarketSnapshot, ApiError } from '@/lib/api';
 import { BellIcon, MoonIcon, SunIcon, hexForSignal, bgForSignal } from '@/components/Icons';
@@ -44,7 +45,13 @@ export default function HomePage() {
         setStocks(stocksRes);
         setAllSignals(signalsRes);
         setSnapshot(snapshotRes);
-        if (stocksRes.length > 0) setSelectedTicker(stocksRes[0].ticker);
+
+        // Support deep-linking from /tickers ("See all") — if the URL has
+        // ?ticker=X and it's a real ticker, select that one instead of
+        // always defaulting to the first stock in the list.
+        const requested = new URLSearchParams(window.location.search).get('ticker');
+        const isValidRequested = requested && stocksRes.some((s) => s.ticker === requested);
+        setSelectedTicker(isValidRequested ? requested : stocksRes[0]?.ticker ?? null);
 
         const watchlistTickers = signalsRes.slice(0, WATCHLIST_SIZE).map((s) => s.ticker);
         const sparklineEntries = await Promise.all(
@@ -174,7 +181,9 @@ export default function HomePage() {
         <>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold">Watchlist</h2>
-            <span className="text-xs text-brand-primary dark:text-brand-accent font-medium">See all</span>
+            <Link href="/tickers" className="text-xs text-brand-primary dark:text-brand-accent font-medium">
+              See all
+            </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar mb-6 -mx-4 px-4 md:mx-0 md:px-0">
             {watchlistSignals.map((s) => (
