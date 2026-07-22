@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   Tooltip,
-  TooltipProps,
+  //TooltipProps,
 } from 'recharts';
 
 import type {
@@ -24,7 +24,15 @@ type RsiPoint = { date: string; rsi: number };
 // Custom tooltip content instead of Recharts' plain default box, so it
 // matches the app's own styling and shows exactly what a beginner needs:
 // the date, and the price (plus MA7/MA30 if present) at that point.
-function PriceTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function PriceTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload as PricePoint;
   return (
@@ -37,7 +45,15 @@ function PriceTooltip({ active, payload, label }: TooltipProps<number, string>) 
   );
 }
 
-function RsiTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function RsiTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload as RsiPoint;
   return (
