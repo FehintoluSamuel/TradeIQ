@@ -1,20 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, MarketSnapshot, ApiError } from '@/lib/api';
+import { api, MarketSnapshotExplained, ApiError } from '@/lib/api';
 import { IndexChart } from '@/components/Charts';
 import { MetricCard } from '@/components/MetricCard';
 
 const MOCK_TREND = [102400, 102100, 102800, 103200, 103000, 103900, 104200, 104982];
 
 export default function MarketPage() {
-  const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<MarketSnapshotExplained | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // One call gets both the numbers and the AI paragraph together — the
+    // doc's Screen 2 spec sources this whole page from this one endpoint.
     api
-      .getMarketSnapshot()
+      .getMarketSnapshotExplained()
       .then(setSnapshot)
       .catch((e) =>
         setError(
@@ -39,21 +41,29 @@ export default function MarketPage() {
         {new Date(snapshot.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
       </p>
 
-      <div className="bg-[#D1FAE5] dark:bg-gradient-to-br dark:from-brand-primary dark:to-brand-forest rounded-2xl p-4 mb-6">
-        <p className="text-xs text-[#0F5C2E] dark:text-[#8FEFB4] mb-1">NGX All-Share Index</p>
+      <div className="bg-[#F5F6FA] dark:bg-[#12211A] border border-[#EFEFF2] dark:border-[#17251C] rounded-2xl p-4 mb-4">
+        <p className="text-xs text-[#8A8FA3] dark:text-[#8FA396] mb-1">NGX All-Share Index</p>
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="font-display text-3xl text-[#0A2818] dark:text-white">
+          <span className="font-display text-3xl text-[#0A2233] dark:text-white">
             {snapshot.all_share_index.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
-          <span className={`text-sm font-semibold ${positive ? 'text-[#0F5C2E] dark:text-[#8FEFB4]' : 'text-signal-bearish'}`}>
+          <span className={`text-sm font-semibold ${positive ? 'text-signal-bullish' : 'text-signal-bearish'}`}>
             {positive ? '▲' : '▼'} {Math.abs(snapshot.asi_change_percent)}%
           </span>
         </div>
         <IndexChart data={MOCK_TREND} />
         <div className="flex gap-4 mt-3">
-          <span className="text-xs font-medium text-[#0F5C2E] dark:text-[#8FEFB4]">▲ {snapshot.breadth.advancers} advancers</span>
+          <span className="text-xs font-medium text-signal-bullish">▲ {snapshot.breadth.advancers} advancers</span>
           <span className="text-xs font-medium text-signal-bearish">▼ {snapshot.breadth.decliners} decliners</span>
         </div>
+      </div>
+
+      {/* AI insight — quiet, labeled text block, no icon or badge clutter */}
+      <div className="bg-[#FAFBFC] dark:bg-[#0A2818] border border-[#EFEFF2] dark:border-[#17251C] rounded-2xl p-4 mb-6">
+        <p className="text-[10px] font-semibold text-[#8A8FA3] dark:text-[#8FA396] uppercase tracking-wide mb-2">
+          Today, explained
+        </p>
+        <p className="text-sm leading-relaxed text-[#0A2233] dark:text-[#F3FBF6]">{snapshot.explanation}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">

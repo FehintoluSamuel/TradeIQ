@@ -58,6 +58,8 @@ export type MarketSnapshot = {
   market_cap: { equities: number; total: number };
   breadth: { advancers: number; decliners: number; unchanged: number };
 };
+export type MarketSnapshotExplained = MarketSnapshot & { explanation: string };
+
 export type NewsArticle = {
   title: string;
   description: string;
@@ -83,7 +85,10 @@ export const api = {
       headers: authHeaders(),
     }),
   getMarketSnapshot: () => request<MarketSnapshot>(`${MARKET_INTEL_BASE_URL}/market/snapshot`),
+  getMarketSnapshotExplained: () =>
+    request<MarketSnapshotExplained>(`${MARKET_INTEL_BASE_URL}/market/snapshot/explained`),
   getNews: () => request<{ articles: NewsArticle[] }>(`${MARKET_INTEL_BASE_URL}/market/news`),
+  getNewsExplained: () => request<{ articles: NewsArticle[] }>(`${MARKET_INTEL_BASE_URL}/market/news/explained`),
 
   // Login is form-urlencoded with a field literally named "username" that
   // holds the email address — matches the doc's OAuth2-password-flow shape

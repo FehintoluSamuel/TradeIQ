@@ -19,6 +19,12 @@ import { WatchlistCard } from '@/components/WatchlistCard';
 import { NewsTicker } from '@/components/NewsTicker';
 
 const WATCHLIST_SIZE = 4;
+const RANGE_OPTIONS = [
+  { label: '1M', days: 30 },
+  { label: '3M', days: 90 },
+  { label: '6M', days: 180 },
+  { label: '1Y', days: 365 },
+] as const;
 
 export default function HomePage() {
   const { isDark, toggleTheme } = useTheme();
