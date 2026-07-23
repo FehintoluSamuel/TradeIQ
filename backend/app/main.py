@@ -53,16 +53,7 @@ def stop_scheduler():
 # ── CORS middleware ───────────────────────────────────────────────────────────
 # Allows the React frontend (Vite, port 5173) to call this API.
 # Lock allow_origins to your exact frontend URL in production.
-"""app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",    # Vite dev server
-        "http://localhost:3000",    # fallback
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)"""
+
 app.add_middleware(
 
             CORSMiddleware,
@@ -72,6 +63,9 @@ app.add_middleware(
         allow_methods=["*"],
 
         allow_headers=["*"],
+        
+        allow_credentials=True,
+        
 
         )
 
