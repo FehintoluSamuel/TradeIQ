@@ -1,11 +1,11 @@
 import { MiniSparkline } from './MiniSparkline';
+import { TickerLogo } from './TickerLogo';
 
 export function WatchlistCard({
   ticker,
   price,
   changePct,
   sparkline,
-  color,
   onClick,
   active,
 }: {
@@ -13,7 +13,7 @@ export function WatchlistCard({
   price: string;
   changePct: number;
   sparkline: number[];
-  color: string;
+  color: string; // kept in the prop type so callers don't need updating; no longer used for a placeholder circle
   onClick: () => void;
   active: boolean;
 }) {
@@ -26,9 +26,7 @@ export function WatchlistCard({
       }`}
     >
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style={{ backgroundColor: color }}>
-          {ticker.slice(0, 2)}
-        </div>
+        <TickerLogo ticker={ticker} size={28} />
         <span className="text-xs font-medium">{ticker}</span>
       </div>
       <div className="mb-2">

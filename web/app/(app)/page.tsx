@@ -13,6 +13,7 @@ import { BellIcon, MoonIcon, SunIcon, hexForSignal, bgForSignal } from '@/compon
 import { PriceChart, RsiChart } from '@/components/Charts';
 import { MetricCard } from '@/components/MetricCard';
 import { WatchlistCard } from '@/components/WatchlistCard';
+import { TickerLogo } from '@/components/TickerLogo';
 import { NewsTicker } from '@/components/NewsTicker';
 
 const WATCHLIST_SIZE = 4;
@@ -221,12 +222,13 @@ export default function HomePage() {
           <button
             key={stock.ticker}
             onClick={() => setSelectedTicker(stock.ticker)}
-            className={`shrink-0 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+            className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
               selectedTicker === stock.ticker
                 ? 'bg-[#0A2233] dark:bg-brand-primary text-white'
                 : 'bg-[#F5F6FA] dark:bg-[#0A2818] text-[#8A8FA3] dark:text-[#8FA396]'
             }`}
           >
+            <TickerLogo ticker={stock.ticker} size={20} />
             {stock.ticker}
           </button>
         ))}
