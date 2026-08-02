@@ -4,7 +4,7 @@
 
 **Live API:** https://tradeiq-12gh.onrender.com/api/docs  
 **Status:** Production · v1.0.0
-
+**Live frontend dashboard :** https://trade-iq-engx.vercel.app
 ---
 
 ## What TradeIQ Does
