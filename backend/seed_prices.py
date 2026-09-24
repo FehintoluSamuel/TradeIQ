@@ -19,11 +19,51 @@ import logging
 logging.disable(logging.INFO)
 
 TICKER_MAP = {
-    "DANGCEM":   "DANGCEM",
-    "GTCO":      "GTCO",
-    "MTNN":      "MTNN",
-    "ZENITH": "ZENITHBANK",
-    "BUA":  "BUACEMENT",
+
+    "DANGCEM": "DANGCEM",
+
+    "GTCO": "GTCO",
+
+    "MTNN": "MTNN",
+
+    "ZENITHBANK": "ZENITHBANK",
+
+    "UBA": "UBA",
+
+    "STANBIC": "STANBIC",
+
+    "FIDELITYBK": "FIDELITYBK",
+
+    "FCMB": "FCMB",
+
+    "SEPLAT": "SEPLAT",
+
+    "GUINNESS": "GUINNESS",
+
+    "BUAFOODS": "BUAFOODS",
+
+    "NB": "NB",
+
+    "PRESCO": "PRESCO",
+
+    "OKOMUOIL": "OKOMUOIL",
+
+    "NASCON": "NASCON",
+
+    "JBERGER": "JBERGER",
+
+    "NESTLE": "NESTLE",
+
+    "TRANSCORP": "TRANSCORP",
+
+    "CADBURY": "CADBURY",
+
+    "PZ": "PZ",
+
+    "BUACEMENT": "BUACEMENT",
+
+    "UNILEVER": "UNILEVER",
+
 }
 
 def clean(value: str) -> str:
@@ -48,6 +88,11 @@ try:
 
     for filename in all_files:
         csv_ticker = filename.replace(".csv", "").upper()
+
+        csv_ticker = csv_ticker.split("STOCK_NG_XNSA_")[-1]
+
+        csv_ticker = csv_ticker.replace("(1)", "").strip()
+
         ticker = TICKER_MAP.get(csv_ticker)
         if not ticker:
             print(f"  ✗ No mapping for {csv_ticker} — skipping.")

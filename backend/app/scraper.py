@@ -141,7 +141,7 @@ def run_scraper(db: Session) -> None:
     inserted_total = 0
 
     for ticker in TICKERS:
-        rows = fetch_stock_history(ticker, days=365)
+        rows = fetch_stock_history(ticker, days=1)
         if not rows:
             continue
 
