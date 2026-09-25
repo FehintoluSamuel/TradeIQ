@@ -75,7 +75,7 @@ class Settings(BaseSettings):
 
     # Groq (LLM plain-English explanations)
     groq_api_key: str = Field(..., description="Groq API key")
-    groq_model: str = Field(default="llama-3.3-70b-versatile")
+    groq_model: str = Field(default="openai/gpt-oss-120b")
     groq_max_articles: int = Field(default=3, ge=1, le=10)
 
     # Cache / networking behaviour
@@ -413,7 +413,7 @@ You have been given the following technical data for {ticker}:
 - RSI (14-day): {rsi}
 - Overall signal: {signal.upper()}
 
-Write a comprehensive 10-12 sentence analysis that does ALL of the following:
+Write a comprehensive 10-12 sentence analysis in structured paragraphs that does ALL of the following:
 1. State clearly whether the stock is trending up, down, or sideways — and by how much
 2. Explain what the MA7 vs MA30 relationship means in plain English (is there a golden cross or death cross forming?)
 3. Interpret the RSI — is momentum strengthening or weakening? Is the stock overbought or oversold?
@@ -426,6 +426,7 @@ Write for someone with no finance background. Explain every technical term you u
 Use ₦ for prices. Be specific — reference the actual numbers throughout.
 Do not repeat the raw data mechanically. Interpret it. Tell a story about what is happening with this stock.
 Return only the analysis paragraph. No headers. No bullet points. No preamble.
+Avoid the use of 'M dashes' and AI words
 """
 
 
@@ -437,7 +438,7 @@ async def healthz():
     return {"status": "ok"}
 
 
-@app.get("/market/snapshot")
+@app.get("/market/snapshot") 
 async def market_snapshot():
     try:
         return await fetch_ngx_snapshot()

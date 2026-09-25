@@ -2,6 +2,7 @@
 
 /**
  * app/(app)/page.tsx — Home / Dashboard
+ * Watchlist was rewritten as Stocklist
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -193,7 +194,7 @@ export default function HomePage() {
       {watchlistSignals.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">Watchlist</h2>
+            <h2 className="text-sm font-semibold">Stocklist</h2>
             <Link href="/tickers" className="text-xs text-brand-primary dark:text-brand-accent font-medium">
               See all
             </Link>
